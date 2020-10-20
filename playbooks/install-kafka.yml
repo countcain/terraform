@@ -1,6 +1,6 @@
 ---
 - name: kafka
-  hosts: all
+  hosts: clients
   remote_user: root
 
   tasks:
@@ -58,11 +58,43 @@
     copy:
       dest: /home/kafka/kafka/config/server.properties
       content: |
-        delete.topic.enable = true
-        broker.id = {{ inventory_hostname }}
-        listeners = PLAINTEXT://{{ ansible_eth1.ipv4.address }}:9092
+        delete.topic.enable  = true
+        log.dir              = /tmp/kafka-logs
+        broker.id            = {{ groups['clients'].index(inventory_hostname) }}
+        listeners            = PLAINTEXT://{{ ansible_eth1.ipv4.address }}:9092
         advertised.listeners = PLAINTEXT://{{ ansible_eth1.ipv4.address }}:9092
-        zookeeper.connect = {{ private_ip_0 }}:2181,{{ private_ip_1 }}:2181,{{ private_ip_2 }}:2181
+        zookeeper.connect    = {{ clients_private_ip_addresses[0] }}:2181,{{ clients_private_ip_addresses[1] }}:2181,{{ clients_private_ip_addresses[2] }}:2181
+  - name: create zookeeper config
+    become: true
+    become_user: kafka
+    copy:
+      dest: /home/kafka/kafka/config/zookeeper.properties
+      content: |
+        tickTime                  = 2000
+        initLimit                 = 5
+        syncLimit                 = 2
+        dataDir                   = /tmp/zookeeper
+        clientPort                = 2181
+        maxClientCnxns            = 0
+        admin.enableServer        = false
+        autopurge.snapRetainCount = 3
+        autopurge.purgeInterval   = 24
+        server.0                  = {{ clients_private_ip_addresses[0] }}:2888:3888
+        server.1                  = {{ clients_private_ip_addresses[1] }}:2888:3888
+        server.2                  = {{ clients_private_ip_addresses[2] }}:2888:3888
+  - name: create zookeeper data dir
+    become: true
+    become_user: kafka
+    file:
+      state: directory
+      path: /tmp/zookeeper
+  - name: create zookeeper myid file in data dir
+    become: true
+    become_user: kafka
+    copy:
+      dest: /tmp/zookeeper/myid
+      content: |
+        {{ groups['clients'].index(inventory_hostname) }}
   - name: create zookeeper systemd unit file
     copy:
       dest: /etc/systemd/system/zookeeper.service

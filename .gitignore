@@ -1,3 +1,5 @@
 .DS_Store
 .idea
 *.swp
+extra_vars.yml
+hosts
