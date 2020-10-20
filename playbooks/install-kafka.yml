@@ -1,0 +1,104 @@
+---
+- name: kafka
+  hosts: all
+  remote_user: root
+
+  tasks:
+  - name: install net-tools
+    apt:
+      name: net-tools
+      state: present
+  - name: install openjdk 8
+    apt:
+      name: openjdk-8-jdk
+      state: present
+  - name: create a kafka user
+    user:
+      state: present
+      name: kafka
+      groups:
+        - sudo
+      shell: /bin/bash
+      system: no
+      createhome: yes
+      home: /home/kafka
+  - name: create download directory
+    become: true
+    become_user: kafka
+    file:
+      state: directory
+      path: /home/kafka/Downloads
+  - name: download kafka binary
+    become: true
+    become_user: kafka
+    get_url:
+      url: https://mirror.dsrg.utoronto.ca/apache/kafka/2.6.0/kafka_2.13-2.6.0.tgz
+      dest: /home/kafka/Downloads/kafka.tgz
+  - name: create kafka dir
+    become: true
+    become_user: kafka
+    file:
+      state: directory
+      path: /home/kafka/kafka
+  - name: extract binaries
+    become: true
+    become_user: kafka
+    command:
+      chdir: /home/kafka/kafka
+      warn: no
+      argv:
+        - tar
+        - -xvzf
+        - /home/kafka/Downloads/kafka.tgz
+        - --strip
+        - 1
+  - name: create kafka config
+    become: true
+    become_user: kafka
+    copy:
+      dest: /home/kafka/kafka/config/server.properties
+      content: |
+        delete.topic.enable = true
+        broker.id = {{ inventory_hostname }}
+        listeners = PLAINTEXT://{{ ansible_eth1.ipv4.address }}:9092
+        advertised.listeners = PLAINTEXT://{{ ansible_eth1.ipv4.address }}:9092
+        zookeeper.connect = {{ private_ip_0 }}:2181,{{ private_ip_1 }}:2181,{{ private_ip_2 }}:2181
+  - name: create zookeeper systemd unit file
+    copy:
+      dest: /etc/systemd/system/zookeeper.service
+      content: |
+        [Unit]
+        Requires=network.target remote-fs.target
+        After=network.target remote-fs.target
+
+        [Service]
+        Type=simple
+        User=kafka
+        ExecStart=/home/kafka/kafka/bin/zookeeper-server-start.sh /home/kafka/kafka/config/zookeeper.properties
+        ExecStop=/home/kafka/kafka/bin/zookeeper-server-stop.sh
+        Restart=on-abnormal
+
+        [Install]
+        WantedBy=multi-user.target
+  - name: create kafka systemd unit file
+    copy:
+      dest: /etc/systemd/system/kafka.service
+      content: |
+        [Unit]
+        Requires=zookeeper.service
+        After=zookeeper.service
+
+        [Service]
+        Type=simple
+        User=kafka
+        ExecStart=/bin/sh -c '/home/kafka/kafka/bin/kafka-server-start.sh /home/kafka/kafka/config/server.properties > /home/kafka/kafka/kafka.log 2>&1'
+        ExecStop=/home/kafka/kafka/bin/kafka-server-stop.sh
+        Restart=on-abnormal
+
+        [Install]
+        WantedBy=multi-user.target
+  - name: Make sure kafka is running
+    systemd:
+      state: started
+      enabled: yes
+      name: kafka
