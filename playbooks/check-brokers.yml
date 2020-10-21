@@ -1,0 +1,17 @@
+---
+- name: check kafka brokers
+  hosts: clients
+  remote_user: root
+
+  tasks:
+    - name: list brokers ids
+      register: results
+      command:
+        warn: no
+        argv:
+          - /home/kafka/kafka/bin/zookeeper-shell.sh
+          - "{{ ansible_eth1.ipv4.address }}:2181"
+          - ls
+          - /brokers/ids
+    - debug: msg="{{ results.stdout_lines }}"
+    - debug: msg="{{ results.stderr }}"

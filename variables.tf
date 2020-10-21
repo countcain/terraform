@@ -9,3 +9,8 @@ variable "ssh_public_keys" {
 variable "pvt_key" {
     description = "terraform private key"
 }
+
+variable "region" {
+    type    = string
+    default = "sfo2"
+}

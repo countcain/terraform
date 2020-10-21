@@ -32,3 +32,8 @@ variable "tags" {
   type    = list(string)
   description = "tags added to the droplet"
 }
+
+variable "vpc_id" {
+  type    = string
+  description = "all droplets will be assigned to this vpc"
+}
