@@ -7,3 +7,8 @@ servers_private_ip_addresses:
   - 10.120.16.4
   - 10.120.16.7
   - 10.120.16.3
+
+dc: sfo2
+
+consul_encrypt: pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
+nomad_encrypt: 4kRkFQfcc3LU0BazP1ca+z==

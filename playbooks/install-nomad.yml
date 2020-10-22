@@ -1,0 +1,95 @@
+---
+- name: nomad general
+  hosts: all
+  remote_user: root
+
+  tasks:
+    - name: install unzip
+      apt:
+        name: unzip
+        state: present
+    - name: download nomad binary
+      get_url:
+        url: https://releases.hashicorp.com/nomad/0.12.6/nomad_0.12.6_linux_amd64.zip
+        dest: /root/nomad.zip
+    - name: unzip nomad binary
+      command:
+        chdir: /root
+        warn: no
+        argv:
+          - unzip
+          - nomad.zip
+    - name: chown nomad binary
+      command: chown root:root /root/nomad
+    - name: mv nomad binary
+      command: mv /root/nomad /usr/local/bin/
+    - name: rm nomad binary zip file
+      command: rm -rf /root/nomad.zip
+    - name: create nomad systemd unit file
+      copy:
+        dest: /etc/systemd/system/nomad.service
+        content: |
+          [Unit]
+          Description=Nomad
+          Documentation=https://nomadproject.io/docs/
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          ExecReload=/bin/kill -HUP $MAINPID
+          ExecStart=/usr/local/bin/nomad agent -config /etc/nomad.d
+          KillMode=process
+          KillSignal=SIGINT
+          LimitNOFILE=infinity
+          LimitNPROC=infinity
+          Restart=on-failure
+          RestartSec=2
+          StartLimitBurst=3
+          StartLimitIntervalSec=10
+          TasksMax=infinity
+
+          [Install]
+          WantedBy=multi-user.target
+    - name: create nomad log dir
+      file:
+        state: directory
+        path: /var/log/nomad
+    - name: create nomad opt dir
+      file:
+        state: directory
+        path: /opt/nomad
+    - name: create nomad config dir
+      file:
+        state: directory
+        path: /etc/nomad.d
+        mode: '700'
+    - name: create nomad general config
+      copy:
+        dest: /etc/nomad.d/nomad.hcl
+        content: |
+          datacenter = "{{ dc }}"
+          addresses {
+            http = "{{ ansible_eth1.ipv4.address }}"
+            rpc = "{{ ansible_eth1.ipv4.address }}"
+            serf = "{{ ansible_eth1.ipv4.address }}"
+          }
+          advertise {
+            http = "{{ ansible_eth1.ipv4.address }}"
+            rpc = "{{ ansible_eth1.ipv4.address }}"
+            serf = "{{ ansible_eth1.ipv4.address }}"
+          }
+          consul {
+            address = "127.0.0.1:8500"
+          }
+          data_dir = "/opt/nomad"
+          log_level = "INFO"
+          log_json = true
+          log_file = "/var/log/nomad/nomad.log"
+          log_rotate_max_files = 2
+          telemetry {
+            publish_allocation_metrics = true
+            publish_node_metrics       = true
+            datadog_address = "{{ ansible_eth1.ipv4.address }}:8125"
+            disable_hostname = true
+            collection_interval = "10s"
+          }
