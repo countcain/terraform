@@ -39,7 +39,7 @@
       copy:
         dest: /etc/nomad.d/server.hcl
         content: |
-          name = "server-{{ groups['servers'].index(inventory_hostname) }}"
+          name = "{{ dc }}-server-{{ groups['servers'].index(inventory_hostname) }}"
           server {
             enabled = true
             bootstrap_expect = 3
