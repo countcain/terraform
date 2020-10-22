@@ -12,3 +12,4 @@ dc: sfo2
 
 consul_encrypt: pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
 nomad_encrypt: 4kRkFQfcc3LU0BazP1ca+z==
+datadog_api_key: xxxx

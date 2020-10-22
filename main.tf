@@ -27,7 +27,7 @@ module "droplets-group-clients" {
   amount_of = 3
   memory = 4096
   cpu = 2
-  tags = ["kafka-brokers", "nomad-clients", var.region]
+  tags = ["nomad-clients", "kafka-brokers", var.region]
   vpc_id = digitalocean_vpc.project.id
 
   depends_on = [digitalocean_vpc.project]
