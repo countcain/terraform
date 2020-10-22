@@ -1,0 +1,57 @@
+---
+- name: consul servers
+  hosts: servers
+  remote_user: root
+
+  tasks:
+    - name: create consul server config
+      copy:
+        dest: /etc/consul.d/server.hcl
+        owner: consul
+        group: consul
+        mode: '640'
+        content: |
+          server = true
+          bootstrap_expect = 3
+          ui = true
+    - name: Make sure consul is running
+      systemd:
+        state: started
+        enabled: yes
+        name: consul
+    - name:  update resolved
+      copy:
+        dest: /etc/systemd/resolved.conf
+        content: |
+          [Resolve]
+          DNS={{ ansible_eth1.ipv4.address }}
+          Domains=~consul
+    - name: Make sure systemd-resolved is restarted
+      systemd:
+        state: restarted
+        enabled: yes
+        name: systemd-resolved
+    - name: iptables udp for consul
+      command: iptables -t nat -A OUTPUT -d {{ ansible_eth1.ipv4.address }} -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
+    - name: iptables tcp for consul
+      command: iptables -t nat -A OUTPUT -d {{ ansible_eth1.ipv4.address }} -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
+    - name:  create nomad server config
+      copy:
+        dest: /etc/nomad.d/server.hcl
+        content: |
+          name = "server-{{ groups['servers'].index(inventory_hostname) }}"
+          server {
+            enabled = true
+            bootstrap_expect = 3
+            encrypt = "{{ nomad_encrypt }}"
+            server_join {
+              retry_join = ["{{ servers_private_ip_addresses[0] }}","{{ servers_private_ip_addresses[1] }}","{{ servers_private_ip_addresses[2] }}"]
+              retry_max = 3
+              retry_interval = "15s"
+            }
+          }
+    - name: Make sure nomad is running
+      systemd:
+        state: started
+        enabled: yes
+        name: nomad

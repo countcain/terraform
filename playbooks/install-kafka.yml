@@ -59,7 +59,7 @@
       dest: /home/kafka/kafka/config/server.properties
       content: |
         delete.topic.enable  = true
-        log.dir              = /tmp/kafka-logs
+        log.dir              = /data/kafka-logs
         broker.id            = {{ groups['clients'].index(inventory_hostname) }}
         listeners            = PLAINTEXT://{{ ansible_eth1.ipv4.address }}:9092
         advertised.listeners = PLAINTEXT://{{ ansible_eth1.ipv4.address }}:9092
@@ -73,7 +73,7 @@
         tickTime                  = 2000
         initLimit                 = 5
         syncLimit                 = 2
-        dataDir                   = /tmp/zookeeper
+        dataDir                   = /data/zookeeper
         clientPort                = 2181
         maxClientCnxns            = 0
         admin.enableServer        = false
@@ -87,12 +87,12 @@
     become_user: kafka
     file:
       state: directory
-      path: /tmp/zookeeper
+      path: /data/zookeeper
   - name: create zookeeper myid file in data dir
     become: true
     become_user: kafka
     copy:
-      dest: /tmp/zookeeper/myid
+      dest: /data/zookeeper/myid
       content: |
         {{ groups['clients'].index(inventory_hostname) }}
   - name: create zookeeper systemd unit file

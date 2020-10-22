@@ -1,0 +1,57 @@
+---
+- name: consul clients
+  hosts: clients
+  remote_user: root
+
+  tasks:
+    - name: Make sure consul is running
+      systemd:
+        state: started
+        enabled: yes
+        name: consul
+    - name: create dnsmasq.d directory
+      file:
+        state: directory
+        path: /etc/dnsmasq.d
+    - name: create dnsmasq config
+      copy:
+        dest: /etc/dnsmasq.d/10-consul
+        content: |
+          # Enable forward lookup of the 'consul' domain:
+          server=/consul/$self#8600
+          listen-address=$self
+          # Uncomment and modify as appropriate to enable reverse DNS lookups for
+          # common netblocks found in RFC 1918, 5735, and 6598:
+          #rev-server=0.0.0.0/8,127.0.0.1#8600
+          #rev-server=10.0.0.0/8,127.0.0.1#8600
+          #rev-server=100.64.0.0/10,127.0.0.1#8600
+          #rev-server=127.0.0.1/8,127.0.0.1#8600
+          #rev-server=169.254.0.0/16,127.0.0.1#8600
+          #rev-server=172.16.0.0/12,127.0.0.1#8600
+          #rev-server=192.168.0.0/16,127.0.0.1#8600
+          #rev-server=224.0.0.0/4,127.0.0.1#8600
+          #rev-server=240.0.0.0/4,127.0.0.1#8600
+    - name: install dnsmasq
+      apt:
+        name: dnsmasq
+        state: present
+    - name: create nomad client config
+      copy:
+        dest: /etc/nomad.d/client.hcl
+        content: |
+          name = "client-{{ groups['clients'].index(inventory_hostname) }}"
+          client {
+            enabled = true
+            node_class = "worker"
+            network_interface = "eth1"
+            server_join {
+              retry_join = ["{{ servers_private_ip_addresses[0] }}","{{ servers_private_ip_addresses[1] }}","{{ servers_private_ip_addresses[2] }}"]
+              retry_max = 3
+              retry_interval = "15s"
+            }
+          }
+    - name: Make sure nomad is running
+      systemd:
+        state: started
+        enabled: yes
+        name: nomad
