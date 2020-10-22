@@ -1,0 +1,100 @@
+---
+- name: consul general
+  hosts: all
+  remote_user: root
+
+  tasks:
+    - name: install unzip
+      apt:
+        name: unzip
+        state: present
+    - name: download consul binary
+      get_url:
+        url: https://releases.hashicorp.com/consul/1.8.4/consul_1.8.4_linux_amd64.zip
+        dest: /root/consul.zip
+    - name: unzip consul binary
+      command:
+        chdir: /root
+        warn: no
+        argv:
+          - unzip
+          - consul.zip
+    - name: chown consul binary
+      command: chown root:root /root/consul
+    - name: mv consul binary
+      command: mv /root/consul /usr/local/bin/
+    - name: rm consul binary zip file
+      command: rm -rf /root/consul.zip
+    - name: create consul systemd unit file
+      copy:
+        dest: /etc/systemd/system/consul.service
+        content: |
+          [Unit]
+          Description="HashiCorp Consul - A service mesh solution"
+          Documentation=https://www.consul.io/
+          Requires=network-online.target
+          After=network-online.target
+          ConditionFileNotEmpty=/etc/consul.d/consul.hcl
+          [Service]
+          Type=notify
+          User=consul
+          Group=consul
+          ExecStart=/usr/local/bin/consul agent -config-dir=/etc/consul.d/
+          ExecReload=/usr/local/bin/consul reload
+          KillMode=process
+          Restart=on-failure
+          LimitNOFILE=65536
+          [Install]
+          WantedBy=multi-user.target
+    - name: create a consul user
+      user:
+        state: present
+        name: consul
+        shell: /bin/false
+        system: yes
+        createhome: yes
+        home: /etc/consul.d
+    - name: create consul opt dir
+      file:
+        state: directory
+        owner: consul
+        group: consul
+        path: /opt/consul
+    - name: create consul log dir
+      file:
+        state: directory
+        owner: consul
+        group: consul
+        path: /var/log/consul
+    - name: create consul config dir
+      file:
+        owner: consul
+        group: consul
+        state: directory
+        path: /etc/consul.d
+    - name: create consul general config
+      copy:
+        dest: /etc/consul.d/consul.hcl
+        owner: consul
+        group: consul
+        mode: '640'
+        content: |
+          datacenter = "{{ dc }}"
+          data_dir = "/opt/consul"
+          log_level = "info"
+          log_json = true
+          log_file = "/var/log/consul/consul.log"
+          log_rotate_max_files = 2
+          encrypt = "{{ consul_encrypt }}"
+          retry_join = ["{{ servers_private_ip_addresses[0] }}","{{ servers_private_ip_addresses[1] }}","{{ servers_private_ip_addresses[2] }}"]
+          performance {
+            raft_multiplier = 1
+          }
+          client_addr = "127.0.0.1 {{ ansible_eth1.ipv4.address }}"
+          bind_addr = "{{ ansible_eth1.ipv4.address }}"
+          advertise_addr = "{{ ansible_eth1.ipv4.address }}"
+          recursors = ["8.8.8.8","8.8.4.4"]
+          telemetry {
+            disable_hostname = true
+            dogstatsd_addr = "{{ ansible_eth1.ipv4.address }}:8125"
+          }
