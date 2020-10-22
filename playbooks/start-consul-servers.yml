@@ -55,3 +55,64 @@
         state: started
         enabled: yes
         name: nomad
+    - name: nomad cli
+      copy:
+        dest: /root/run.sh
+        mode: '700'
+        content: |
+          nomad job run -address http://{{ ansible_eth1.ipv4.address }}:4646 $1
+    - name: download datadog install script
+      get_url:
+        url: https://s3.amazonaws.com/dd-agent/scripts/install_script.sh
+        dest: /tmp/install_dd.sh
+        mode: '700'
+    - name: install datadog agent
+      shell: /tmp/install_dd.sh
+      environment:
+        DD_AGENT_MAJOR_VERSION: 7
+        DD_SITE: datadoghq.com
+        DD_INSTALL_ONLY: true
+        DD_API_KEY: "{{ datadog_api_key }}"
+    - name: create datadog consul config dir
+      become: true
+      become_user: dd-agent
+      file:
+        state: directory
+        path: /etc/datadog-agent/conf.d/consul.d
+    - name: create datadog consul config
+      copy:
+        dest: /etc/datadog-agent/conf.d/consul.d/conf.yaml
+        content: |
+          init_config:
+
+          instances:
+            - url: http://127.0.0.1:8500
+
+          logs:
+            - type: file
+              path: /var/log/consul/*.log
+              source: consul
+              service: consul server
+            - type: file
+              path: /var/log/nomad/*.log
+              source: nomad
+              service: nomad server
+    - name: add datadog config
+      copy:
+        dest: /etc/datadog-agent/datadog.yaml
+        content: |
+          api_key: {{ datadog_api_key }}
+          hostname: {{ dc }}-server-{{ groups['servers'].index(inventory_hostname) }}
+          bind_host: {{ ansible_eth1.ipv4.address }}
+          logs_enabled: true
+          logs_config:
+            use_tcp: true
+    - name: datadog user root
+      command: usermod -a -G root dd-agent
+    - name: datadog user consul
+      command: usermod -a -G consul dd-agent
+    - name: Make sure datadog agent is running
+      systemd:
+        state: started
+        enabled: yes
+        name: datadog-agent
