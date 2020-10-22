@@ -18,8 +18,8 @@
         dest: /etc/dnsmasq.d/10-consul
         content: |
           # Enable forward lookup of the 'consul' domain:
-          server=/consul/$self#8600
-          listen-address=$self
+          server=/consul/{{ ansible_eth1.ipv4.address }}#8600
+          listen-address={{ ansible_eth1.ipv4.address }}
           # Uncomment and modify as appropriate to enable reverse DNS lookups for
           # common netblocks found in RFC 1918, 5735, and 6598:
           #rev-server=0.0.0.0/8,127.0.0.1#8600
