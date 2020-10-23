@@ -9,6 +9,19 @@
         state: started
         enabled: yes
         name: consul
+    - name: Make sure resolved is not occupying 53
+      copy:
+        dest: /etc/systemd/resolved.conf
+        content: |
+          [Resolve]
+          DNSStubListener=no
+    - name: Update link file
+      command: ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+    - name: Make sure systemd-resolved is restarted
+      systemd:
+        state: restarted
+        enabled: yes
+        name: systemd-resolved
     - name: create dnsmasq.d directory
       file:
         state: directory
@@ -35,6 +48,11 @@
       apt:
         name: dnsmasq
         state: present
+    - name: Make sure dnsmasq is restarted
+      systemd:
+        state: restarted
+        enabled: yes
+        name: dnsmasq
     - name: create nomad client config
       copy:
         dest: /etc/nomad.d/client.hcl

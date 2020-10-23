@@ -19,7 +19,7 @@
         state: started
         enabled: yes
         name: consul
-    - name:  update resolved
+    - name: Update resolved
       copy:
         dest: /etc/systemd/resolved.conf
         content: |
