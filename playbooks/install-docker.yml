@@ -1,6 +1,6 @@
 ---
 - name: docker
-  hosts: clients
+  hosts: all
   remote_user: root
 
   tasks:

@@ -19,7 +19,7 @@
         state: started
         enabled: yes
         name: consul
-    - name:  update resolved
+    - name: Update resolved
       copy:
         dest: /etc/systemd/resolved.conf
         content: |
@@ -39,7 +39,7 @@
       copy:
         dest: /etc/nomad.d/server.hcl
         content: |
-          name = "server-{{ groups['servers'].index(inventory_hostname) }}"
+          name = "{{ dc }}-server-{{ groups['servers'].index(inventory_hostname) }}"
           server {
             enabled = true
             bootstrap_expect = 3
