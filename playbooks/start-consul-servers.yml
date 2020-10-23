@@ -92,11 +92,11 @@
             - type: file
               path: /var/log/consul/*.log
               source: consul
-              service: consul server
+              service: consul.server
             - type: file
               path: /var/log/nomad/*.log
               source: nomad
-              service: nomad server
+              service: nomad.server
     - name: add datadog config
       copy:
         dest: /etc/datadog-agent/datadog.yaml
