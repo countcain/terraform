@@ -25,8 +25,8 @@ module "droplets-group-clients" {
 
   region = var.region
   amount_of = 3
-  memory = 4096
-  cpu = 2
+  memory = 1024
+  cpu = 1
   tags = ["nomad-client", "kafka-brokers", var.region]
   vpc_id = digitalocean_vpc.project.id
 
@@ -40,7 +40,7 @@ module "droplets-group-servers" {
   ssh_key_ids = [digitalocean_ssh_key.terraform.id, digitalocean_ssh_key.full_stack_panda.id]
 
   region = var.region
-  amount_of = 3
+  amount_of = 1
   memory = 1024
   cpu = 1
   tags = ["nomad-server", var.region]

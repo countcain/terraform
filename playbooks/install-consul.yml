@@ -86,7 +86,7 @@
           log_file = "/var/log/consul/consul.log"
           log_rotate_max_files = 2
           encrypt = "{{ consul_encrypt }}"
-          retry_join = ["{{ servers_private_ip_addresses[0] }}","{{ servers_private_ip_addresses[1] }}","{{ servers_private_ip_addresses[2] }}"]
+          retry_join = ["{{ servers_private_ip_addresses[0] }}"]
           performance {
             raft_multiplier = 1
           }
