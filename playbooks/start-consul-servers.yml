@@ -12,7 +12,7 @@
         mode: '640'
         content: |
           server = true
-          bootstrap_expect = 3
+          bootstrap_expect = {{ servers_private_ip_addresses|length }}
           ui = true
     - name: Make sure consul is running
       systemd:
@@ -42,10 +42,10 @@
           name = "{{ dc }}-server-{{ groups['servers'].index(inventory_hostname) }}"
           server {
             enabled = true
-            bootstrap_expect = 3
+            bootstrap_expect = {{ servers_private_ip_addresses|length }}
             encrypt = "{{ nomad_encrypt }}"
             server_join {
-              retry_join = ["{{ servers_private_ip_addresses[0] }}","{{ servers_private_ip_addresses[1] }}","{{ servers_private_ip_addresses[2] }}"]
+              retry_join = ["{{ servers_private_ip_addresses[0] }}"]
               retry_max = 3
               retry_interval = "15s"
             }
@@ -92,11 +92,11 @@
             - type: file
               path: /var/log/consul/*.log
               source: consul
-              service: consul server
+              service: consul.server
             - type: file
               path: /var/log/nomad/*.log
               source: nomad
-              service: nomad server
+              service: nomad.server
     - name: add datadog config
       copy:
         dest: /etc/datadog-agent/datadog.yaml
